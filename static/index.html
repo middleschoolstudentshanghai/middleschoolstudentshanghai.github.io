@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>录音上传示例</title>
+</head>
+<body>
+
+<button id="recordButton">开始录音</button>
+<button id="stopButton" disabled>停止录音并上传</button>
+
+<script>
+    let chunks = [];
+    let mediaRecorder;
+    const recordButton = document.getElementById('recordButton');
+    const stopButton = document.getElementById('stopButton');
+
+    const handleDataAvailable = (event) => {
+        chunks.push(event.data);
+    };
+
+    const startRecording = () => {
+        navigator.mediaDevices.getUserMedia({audio: true})
+            .then((stream) => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.addEventListener("dataavailable", handleDataAvailable);
+                mediaRecorder.start();
+                recordButton.disabled = true;
+                stopButton.disabled = false;
+            })
+            .catch((error) => console.error(`Error: ${error}`));
+    };
+
+    const stopRecording = () => {
+        mediaRecorder.stop();
+        recordButton.disabled = false;
+        stopButton.disabled = true;
+        const blob = new Blob(chunks, {type: 'audio/webm'});
+        const formData = new FormData();
+        formData.append('audio', blob, 'recording.webm');
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error(error));
+    };
+
+    recordButton.addEventListener('click', startRecording);
+    stopButton.addEventListener('click', stopRecording);
+</script>
+
+</body>
+</html>
